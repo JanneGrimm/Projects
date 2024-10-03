@@ -26,6 +26,10 @@ void drawGrid(SDL_Renderer* renderer, int gridSize){
     }
 }
 
+void drawSnake(SDL_Renderer* , const vector<SnakeSegment>& snake){
+
+}
+
 
 
 int main(int argc, char* argv[]) {
