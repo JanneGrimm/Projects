@@ -1,112 +1,135 @@
-#include <SDL2/SDL.h>
-#include <iostream>
+#include "snake.hpp"
+#include <cstdlib>
+#include <ctime>
 
-#define WINDOW_WIDTH 1000
-#define WINDOW_HEIGHT 1000
-
-#define FIELD_WIDTH 900
-#define FIELD_HEIGHT 900
-#define FIELD_X 50
-#define FIELD_Y 50
-
-//Fielddesign
-#define GRID_SIZE 13
-
-void drawGrid(SDL_Renderer* renderer, int gridSize){
-    SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);  // Hellgrau
-
-    // Vertikale Linien zeichnen
-    for (int x = 0; x <= WINDOW_WIDTH; x += gridSize) {
-        SDL_RenderDrawLine(renderer, x, 0, x, WINDOW_HEIGHT);
-    }
-
-    // Horizontale Linien zeichnen
-    for (int y = 0; y <= WINDOW_HEIGHT; y += gridSize) {
-        SDL_RenderDrawLine(renderer, 0, y, WINDOW_WIDTH, y);
-    }
+// --- Snake Methoden ---
+Snake::Snake(int startX, int startY) {
+    body.push_back({startX, startY});
+    direction = RIGHT;
 }
 
-void drawSnake(SDL_Renderer* , const vector<SnakeSegment>& snake){
-
+void Snake::move() {
+    Position newHead = body.front();
+    switch (direction) {
+        case UP:    newHead.y--; break;
+        case DOWN:  newHead.y++; break;
+        case LEFT:  newHead.x--; break;
+        case RIGHT: newHead.x++; break;
+    }
+    body.insert(body.begin(), newHead);
+    body.pop_back();
 }
 
+void Snake::changeDirection(Direction newDirection) {
+    direction = newDirection;
+}
 
+void Snake::grow() {
+    body.push_back(body.back());
+}
 
-int main(int argc, char* argv[]) {
-    // SDL initialisieren
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cerr << "SDL konnte nicht initialisiert werden! SDL Error: " << SDL_GetError() << std::endl;
-        return 1;
+bool Snake::isCollidingWithItself() {
+    const Position& head = body.front();
+    for (size_t i = 1; i < body.size(); ++i) {
+        if (body[i].x == head.x && body[i].y == head.y)
+            return true;
     }
+    return false;
+}
 
-    // Fenster erstellen
-    SDL_Window* window = SDL_CreateWindow("SDL Fenster", 
-                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-                                          WINDOW_WIDTH, WINDOW_HEIGHT, 
-                                          SDL_WINDOW_SHOWN);
-    if (window == nullptr) {
-        std::cerr << "Fenster konnte nicht erstellt werden! SDL Error: " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        return 1;
-    }
+const std::vector<Position>& Snake::getBody() const {
+    return body;
+}
 
-    // Renderer erstellen
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == nullptr) {
-        std::cerr << "Renderer konnte nicht erstellt werden! SDL Error: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
+// --- GameBoard Methoden ---
+GameBoard::GameBoard(int w, int h) : width(w), height(h) {
+    generateFruit();
+}
 
+void GameBoard::generateFruit() {
+    fruit.x = rand() % width;
+    fruit.y = rand() % height;
+}
 
-    // Game Loop Variablen
-    bool isRunning = true;  // Flag, um zu bestimmen, ob die Spielschleife läuft
-    SDL_Event event;        // SDL Event Struktur, um Eingaben zu verarbeiten
+const Position& GameBoard::getFruit() const {
+    return fruit;
+}
 
-    // Game Loop
-    while (isRunning) {
-        // 1. Ereignisverarbeitung (Input)
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                isRunning = false;  // Fenster geschlossen
-            }
+int GameBoard::getWidth() const {
+    return width;
+}
 
-            // Weitere Eingabeverarbeitung (Tasten, Maus etc.) hier
-            if (event.type == SDL_KEYDOWN) {
-                switch (event.key.keysym.sym) {
-                    case SDLK_ESCAPE:  // Wenn die ESC-Taste gedrückt wird
-                        isRunning = false;
-                        break;
-                    
-                    // Weitere Tastenverarbeitung hier
-                }
-            }
-        }
-        // Hintergrundfarbe
-        SDL_SetRenderDrawColor(renderer, 195, 176, 145, 255);
-        SDL_RenderClear(renderer);
-        // 2. Spielzustand aktualisieren (Update)
-        // Hier wird die Logik aktualisiert, z.B. Spielobjekte bewegen oder Status updaten.
-        SDL_Rect fieldRect = { FIELD_X, FIELD_Y, FIELD_WIDTH, FIELD_HEIGHT };
-        SDL_SetRenderDrawColor(renderer, 195, 176, 145, 255);  // Grün für das Spielfeld
-        SDL_RenderFillRect(renderer, &fieldRect);          // Spielfeld füllen
-        drawGrid(renderer,  GRID_SIZE);
-        
-        // Spielfeldrand zeichnen (dunklerer Rand um das Spielfeld)
-        SDL_SetRenderDrawColor(renderer, 0, 100, 0, 255);  // Dunkleres Grün für den Rand
-        SDL_RenderDrawRect(renderer, &fieldRect);          // Rand des Spielfelds
+int GameBoard::getHeight() const {
+    return height;
+}
 
-        SDL_RenderPresent(renderer);  // Gezeichneten Inhalt anzeigen
+// --- SnakeGame Methoden ---
+SnakeGame::SnakeGame(int boardWidth, int boardHeight)
+    : snake(boardWidth / 2, boardHeight / 2), board(boardWidth, boardHeight), gameOver(false) {
 
-        // Optional: Frame Rate Control (damit das Spiel nicht zu schnell läuft)
-        SDL_Delay(16);  // 16 ms Delay (ca. 60 FPS)
-    }
+    SDL_Init(SDL_INIT_VIDEO);
+    window = SDL_CreateWindow("Snake Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, boardWidth * 20, boardHeight * 20, 0);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+}
 
-    // Ressourcen freigeben
+SnakeGame::~SnakeGame() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
 
-    return 0;
+void SnakeGame::handleInput() {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            gameOver = true;
+        } else if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+                case SDLK_w: snake.changeDirection(UP); break;
+                case SDLK_s: snake.changeDirection(DOWN); break;
+                case SDLK_a: snake.changeDirection(LEFT); break;
+                case SDLK_d: snake.changeDirection(RIGHT); break;
+            }
+        }
+    }
+}
+
+void SnakeGame::update() {
+    snake.move();
+
+    if (snake.getBody().front().x == board.getFruit().x &&
+        snake.getBody().front().y == board.getFruit().y) {
+        snake.grow();
+        board.generateFruit();
+    }
+
+    if (snake.isCollidingWithItself()) {
+        gameOver = true;
+    }
+}
+
+void SnakeGame::render() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    for (const auto& segment : snake.getBody()) {
+        SDL_Rect rect = { segment.x * 20, segment.y * 20, 20, 20 };
+        SDL_RenderFillRect(renderer, &rect);
+    }
+
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_Rect fruitRect = { board.getFruit().x * 20, board.getFruit().y * 20, 20, 20 };
+    SDL_RenderFillRect(renderer, &fruitRect);
+
+    SDL_RenderPresent(renderer);
+}
+
+void SnakeGame::run() {
+    while (!gameOver) {
+        handleInput();
+        update();
+        render();
+        SDL_Delay(100);
+    }
 }

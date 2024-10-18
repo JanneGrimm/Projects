@@ -1,0 +1,8 @@
+Schlange: Die Schlange besteht aus Segmenten (ihr Körper). Sie kann sich in vier Richtungen 
+bewegen (oben, unten, links, rechts) und wird länger, wenn sie Früchte frisst.
+
+Spielbrett: Ein rechteckiger Bereich, in dem sich die Schlange bewegt. Das Spielfeld enthält Früchte, die die Schlange fressen muss.
+
+Spielablauf: Der Spieler steuert die Schlange, das Spiel endet, wenn die Schlange mit sich selbst oder dem Spielfeldrand kollidiert.
+
+Grafik und Eingaben: SDL verwenden, um das Spielfeld anzuzeigen und die Tastatur-Eingaben zu verarbeiten.
